@@ -18,15 +18,32 @@ def generateFrameImage():
     cv2.destroyAllWindows()
 
 
-def imageProcessing():
-    frame = cv2.imread('./frame/114.jpg')
-    height, width = frame.shape[:2]
+def lineTracker():
+    cap = cv2.VideoCapture('./03.mp4')
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    out = cv2.VideoWriter('output.avi',fourcc, 30.0, (1920,1080))
+    while(cap.isOpened()):
+        ret, frame = cap.read()
+        if ret==True:
+            frame = imageProcessing(frame)
+            out.write(frame)
+            cv2.imshow('frame',frame)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+        else:
+            break
+    cap.release()
+    out.release()
+    cv2.destroyAllWindows()
 
+
+def imageProcessing(frame):
+    height, width = frame.shape[:2]
     # 色マスク
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV_FULL)
-    lowerRed = np.array([30, 50, 150])
-    upperRed = np.array([120, 255, 255])
-    img_mask = cv2.inRange(hsv, lowerRed, upperRed)
+    lowerGreen = np.array([30, 50, 150])
+    upperGreen = np.array([120, 255, 255])
+    img_mask = cv2.inRange(hsv, lowerGreen, upperGreen)
     # ノイズキャンセリング
     labelStats = cv2.connectedComponentsWithStats(img_mask)
     nLabels, labelImages, masses, center = labelStats
@@ -36,35 +53,37 @@ def imageProcessing():
             cv2.rectangle(img_mask, (mass[0], mass[1]),
                           (mass[0] + mass[2], mass[1] + mass[3]), 0, -1)
     # 線のヘリを探してくる
-    border_list = []
-    rows = [360, 400, 440, 480, 520, 560, 600, 640, 680, 720]
+    border_right = []
+    border_left = []
+    rows = [360, 400, 440, int(width/4), 520, 560, 600, 640, 680, 720]
     for row in rows:
         line = img_mask[row, :]
-        for i in range(len(line)):
-            if line[i] != 0:
+        for i_right in range(len(line)):
+            if line[i_right] != 0:
                 break
-        border = (row, i)
-        border_list.append(border)
-    print(border_list)
+        for i_left in reversed(range(len(line))):
+            if line[i_left] != 0:
+                break
+        border_right.append(i_right)
+        border_left.append(i_left)
+    #最小二乗法を敢行
+    X = rows
+    A = np.array([X, np.ones(len(X))])
+    A =A.T
+    Y_right = border_right
+    Y_left = border_left
+    ar, br = np.linalg.lstsq(A, Y_right)[0]
+    al, bl = np.linalg.lstsq(A, Y_left)[0]
+    #書き込み
+    img_line = cv2.line(frame, (int(br), 0), (int(br+height*ar), height), (0, 0, 255), 3)
+    img_line = cv2.line(frame, (int(bl), 0), (int(bl+height*al), height), (0, 0, 255), 3)
+    img_line = cv2.line(frame, (0, int(height/2)), (int(br+int(height/2)*ar), int(height/2)), (0, 255, 0), 2)
+    img_line = cv2.line(frame, (width, int(height/2)), (int(bl+int(height/2)*al), int(height/2)), (0, 255, 0), 2)
+    font = cv2.FONT_HERSHEY_PLAIN
+    cv2.putText(frame, str(int(br+int(height/2)*ar)), (int(width/4), int(height/2-10)), font, 2, (0, 255, 0), 3, cv2.LINE_AA)
+    cv2.putText(frame, str(int(width-bl-int(height/2)*al)), (int(3*width/4), int(height/2-10)), font, 2, (0, 255, 0), 3, cv2.LINE_AA)
 
-    #cv2.imwrite('./mask.jpg', img_mask)
-    #img_color = cv2.bitwise_and(frame, frame, mask=img_mask)
-
-
-def remove_noise_by_labeling(binary_image, value, threshold):
-    stats_of_connectedcomponents = cv2.connectedComponentsWithStats(
-        binary_image)
-    bounding_boxes = np.delete(stats_of_connectedcomponents[2], 0, 0)
-    for box in bounding_boxes:
-        if box[value] < threshold:
-            cv2.rectangle(binary_image, (box[0], box[1]),
-                          (box[0]+box[2], box[1]+box[3]), 0, -1)
-    return binary_image
-
-    output = cv2.resize(img_mask, (round(width / 4), round(height / 4)))
-    imshow(output)
-    #cv2.imwrite('./mask.jpg', img_mask)
-
+    return frame
 
 def filter(img):
     kernel_3x3 = np.array([[-1, 0, 1],
@@ -81,7 +100,8 @@ def imshow(img):
 
 
 def main():
-    imageProcessing()
+    lineTracker()
+    # imageProcessing()
     # generateFrameImage()
 
 
