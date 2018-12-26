@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+import csv
 
 
 def generateFrameImage():
@@ -7,9 +8,12 @@ def generateFrameImage():
     num = 0
     while (cap.isOpened()):
         ret, frame = cap.read()
+        frame, img_mask = imageProcessing(frame)
         cv2.imshow('frame', frame)
-        filename = './frame/{}.jpg'.format(num)
-        cv2.imwrite(filename, frame)
+        filename_f = './frame/{}.jpg'.format(num)
+        filename_m = './mask/{}.jpg'.format(num)
+        cv2.imwrite(filename_f, frame)
+        cv2.imwrite(filename_m, img_mask)
         num += 1
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
@@ -17,17 +21,19 @@ def generateFrameImage():
     cap.release()
     cv2.destroyAllWindows()
 
-
 def lineTracker():
     cap = cv2.VideoCapture('./03.mp4')
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
     out = cv2.VideoWriter('output.avi',fourcc, 30.0, (1920,1080))
+    frame_num = 0
     while(cap.isOpened()):
         ret, frame = cap.read()
         if ret==True:
-            frame = imageProcessing(frame)
+            frame, result = imageProcessing(frame)
             out.write(frame)
             cv2.imshow('frame',frame)
+            save_ascsv(frame_num, result)
+            frame_num += 1
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
         else:
@@ -35,7 +41,6 @@ def lineTracker():
     cap.release()
     out.release()
     cv2.destroyAllWindows()
-
 
 def imageProcessing(frame):
     height, width = frame.shape[:2]
@@ -48,8 +53,7 @@ def imageProcessing(frame):
     labelStats = cv2.connectedComponentsWithStats(img_mask)
     nLabels, labelImages, masses, center = labelStats
     for mass in masses:
-        # 閾値50はてきとー
-        if mass[4] < 50:
+        if mass[4] < 1000:
             cv2.rectangle(img_mask, (mass[0], mass[1]),
                           (mass[0] + mass[2], mass[1] + mass[3]), 0, -1)
     # 線のヘリを探してくる
@@ -74,24 +78,26 @@ def imageProcessing(frame):
     Y_left = border_left
     ar, br = np.linalg.lstsq(A, Y_right)[0]
     al, bl = np.linalg.lstsq(A, Y_left)[0]
+
+    length_R = int(width-bl-int(height/2)*al)
+    length_L = int(br+int(height/2)*ar)
     #書き込み
-    img_line = cv2.line(frame, (int(br), 0), (int(br+height*ar), height), (0, 0, 255), 3)
-    img_line = cv2.line(frame, (int(bl), 0), (int(bl+height*al), height), (0, 0, 255), 3)
-    img_line = cv2.line(frame, (0, int(height/2)), (int(br+int(height/2)*ar), int(height/2)), (0, 255, 0), 2)
-    img_line = cv2.line(frame, (width, int(height/2)), (int(bl+int(height/2)*al), int(height/2)), (0, 255, 0), 2)
+    cv2.line(frame, (int(br), 0), (int(br+height*ar), height), (0, 0, 255), 3)
+    cv2.line(frame, (int(bl), 0), (int(bl+height*al), height), (0, 0, 255), 3)
+    cv2.line(frame, (0, int(height/2)), (int(br+int(height/2)*ar), int(height/2)), (0, 255, 0), 2)
+    cv2.line(frame, (width, int(height/2)), (int(bl+int(height/2)*al), int(height/2)), (0, 255, 0), 2)
     font = cv2.FONT_HERSHEY_PLAIN
-    cv2.putText(frame, str(int(br+int(height/2)*ar)), (int(width/4), int(height/2-10)), font, 2, (0, 255, 0), 3, cv2.LINE_AA)
-    cv2.putText(frame, str(int(width-bl-int(height/2)*al)), (int(3*width/4), int(height/2-10)), font, 2, (0, 255, 0), 3, cv2.LINE_AA)
+    cv2.putText(frame, str(length_L), (int(width/4), int(height/2-10)), font, 2, (0, 255, 0), 3, cv2.LINE_AA)
+    cv2.putText(frame, str(length_R), (int(3*width/4), int(height/2-10)), font, 2, (0, 255, 0), 3, cv2.LINE_AA)
+    #csvに書きこみ
+    result = [length_L, length_R]
+    return frame, result
 
-    return frame
-
-def filter(img):
-    kernel_3x3 = np.array([[-1, 0, 1],
-                           [-1, 0, 1],
-                           [-1, 0, 1]], np.float32)
-    img_filtered = cv2.filter2D(img_mask, -1, kernel_gradient_3x3)
-    return img_filtered
-
+def save_ascsv(frame_num, result):
+    with open('./output.csv', 'a') as f:
+        writer = csv.writer(f, lineterminator='\n')
+        list_row = [frame_num] + result
+        writer.writerow(list_row)
 
 def imshow(img):
     cv2.imshow('frame', img)
