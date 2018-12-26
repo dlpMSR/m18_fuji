@@ -55,7 +55,7 @@ def imageProcessing(frame):
     # 線のヘリを探してくる
     border_right = []
     border_left = []
-    rows = [360, 400, 440, int(width/4), 520, 560, 600, 640, 680, 720]
+    rows = [360, 400, 440, 480, 520, 560, 600, 640, 680, 720]
     for row in rows:
         line = img_mask[row, :]
         for i_right in range(len(line)):
