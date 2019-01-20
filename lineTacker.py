@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 import csv
+from tqdm import tqdm
 
 
 def generateFrameImage():
@@ -17,12 +18,13 @@ def generateFrameImage():
         num += 1
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
-
     cap.release()
     cv2.destroyAllWindows()
 
 def lineTracker():
     cap = cv2.VideoCapture('./03.mp4')
+    length = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+    pbar = tqdm(total=int(length))
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
     out = cv2.VideoWriter('output.avi',fourcc, 30.0, (1920,1080))
     frame_num = 0
@@ -34,10 +36,12 @@ def lineTracker():
             cv2.imshow('frame',frame)
             save_ascsv(frame_num, result)
             frame_num += 1
+            pbar.update(1)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
         else:
             break
+    pbar.close()
     cap.release()
     out.release()
     cv2.destroyAllWindows()
