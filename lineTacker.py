@@ -80,8 +80,8 @@ def imageProcessing(frame):
     A =A.T
     Y_right = border_right
     Y_left = border_left
-    ar, br = np.linalg.lstsq(A, Y_right)[0]
-    al, bl = np.linalg.lstsq(A, Y_left)[0]
+    ar, br = np.linalg.lstsq(A, Y_right, rcond=None)[0]
+    al, bl = np.linalg.lstsq(A, Y_left, rcond=None)[0]
 
     length_R = int(width-bl-int(height/2)*al)
     length_L = int(br+int(height/2)*ar)
