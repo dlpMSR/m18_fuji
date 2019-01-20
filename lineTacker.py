@@ -27,6 +27,10 @@ def lineTracker():
     pbar = tqdm(total=int(length))
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
     out = cv2.VideoWriter('output.avi',fourcc, 30.0, (1920,1080))
+    f = open('./output.csv', 'w')
+    writer = csv.writer(f, lineterminator='\n')
+    writer.writerow(['frame', 'right','left'])
+    result_list = []
     frame_num = 0
     while(cap.isOpened()):
         ret, frame = cap.read()
@@ -35,14 +39,17 @@ def lineTracker():
             out.write(frame)
             cv2.namedWindow('frame', cv2.WINDOW_KEEPRATIO | cv2.WINDOW_NORMAL)
             cv2.imshow('frame',frame)
-            save_ascsv(frame_num, result)
+            result_list.append([frame_num]+result)
             frame_num += 1
             pbar.update(1)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
         else:
             break
+    for item in result_list:
+        writer.writerow(item)
     pbar.close()
+    f.close()
     cap.release()
     out.release()
     cv2.destroyAllWindows()
@@ -98,11 +105,6 @@ def imageProcessing(frame):
     result = [length_L, length_R]
     return frame, result
 
-def save_ascsv(frame_num, result):
-    with open('./output.csv', 'a') as f:
-        writer = csv.writer(f, lineterminator='\n')
-        list_row = [frame_num] + result
-        writer.writerow(list_row)
 
 def imshow(img):
     cv2.imshow('frame', img)
