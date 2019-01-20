@@ -33,6 +33,7 @@ def lineTracker():
         if ret==True:
             frame, result = imageProcessing(frame)
             out.write(frame)
+            cv2.namedWindow('frame', cv2.WINDOW_KEEPRATIO | cv2.WINDOW_NORMAL)
             cv2.imshow('frame',frame)
             save_ascsv(frame_num, result)
             frame_num += 1
