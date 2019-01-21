@@ -4,25 +4,8 @@ import csv
 from tqdm import tqdm
 
 
-def generateFrameImage():
-    cap = cv2.VideoCapture('./03.mp4')
-    num = 0
-    while (cap.isOpened()):
-        ret, frame = cap.read()
-        frame, img_mask = imageProcessing(frame)
-        cv2.imshow('frame', frame)
-        filename_f = './frame/{}.jpg'.format(num)
-        filename_m = './mask/{}.jpg'.format(num)
-        cv2.imwrite(filename_f, frame)
-        cv2.imwrite(filename_m, img_mask)
-        num += 1
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-    cap.release()
-    cv2.destroyAllWindows()
-
-def lineTracker():
-    cap = cv2.VideoCapture('./03.mp4')
+def lineTracker(video_path):
+    cap = cv2.VideoCapture(video_path)
     length = cap.get(cv2.CAP_PROP_FRAME_COUNT)
     pbar = tqdm(total=int(length))
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
@@ -106,16 +89,9 @@ def imageProcessing(frame):
     return frame, result
 
 
-def imshow(img):
-    cv2.imshow('frame', img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-
-
 def main():
-    lineTracker()
+    lineTracker('./03.mp4')
     # imageProcessing()
-    # generateFrameImage()
 
 
 if __name__ == '__main__':
