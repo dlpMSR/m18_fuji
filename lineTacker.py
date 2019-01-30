@@ -4,29 +4,12 @@ import csv
 from tqdm import tqdm
 
 
-def generateFrameImage():
-    cap = cv2.VideoCapture('./03.mp4')
-    num = 0
-    while (cap.isOpened()):
-        ret, frame = cap.read()
-        frame, img_mask = imageProcessing(frame)
-        cv2.imshow('frame', frame)
-        filename_f = './frame/{}.jpg'.format(num)
-        filename_m = './mask/{}.jpg'.format(num)
-        cv2.imwrite(filename_f, frame)
-        cv2.imwrite(filename_m, img_mask)
-        num += 1
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-    cap.release()
-    cv2.destroyAllWindows()
-
 def lineTracker():
-    cap = cv2.VideoCapture('./03.mp4')
+    cap = cv2.VideoCapture('./00011.MTS')
     length = cap.get(cv2.CAP_PROP_FRAME_COUNT)
     pbar = tqdm(total=int(length))
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    out = cv2.VideoWriter('output.avi',fourcc, 30.0, (1920,1080))
+    out = cv2.VideoWriter('output.avi',fourcc, 30.0, (1440,1080))
     f = open('./output.csv', 'w')
     writer = csv.writer(f, lineterminator='\n')
     writer.writerow(['frame', 'right','left'])
@@ -54,16 +37,36 @@ def lineTracker():
     out.release()
     cv2.destroyAllWindows()
 
+def generateFrameImage():
+    cap = cv2.VideoCapture('./00011.MTS')
+    num = 0
+    while (cap.isOpened()):
+        ret, frame = cap.read()
+        if ret:    
+            img_mask = verification(frame)
+            cv2.imshow('frame', img_mask)
+            filename_f = './frame/{}.jpg'.format(num)
+            filename_m = './mask/{}.jpg'.format(num)
+            cv2.imwrite(filename_f, frame)
+            cv2.imwrite(filename_m, img_mask)
+            num += 1
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+        else:
+            break
+    cap.release()
+    cv2.destroyAllWindows()
+
 def imageProcessing(frame):
     height, width = frame.shape[:2]
     # 色マスク
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV_FULL)
-    lowerGreen = np.array([30, 50, 150])
-    upperGreen = np.array([120, 255, 255])
-    img_mask = cv2.inRange(hsv, lowerGreen, upperGreen)
+    LOWER_RED = np.array([200, 100, 100])
+    UPPER_RED = np.array([310, 255, 255])
+    img_mask = cv2.inRange(hsv, LOWER_RED, UPPER_RED)
     # ノイズキャンセリング
     labelStats = cv2.connectedComponentsWithStats(img_mask)
-    nLabels, labelImages, masses, center = labelStats
+    masses = labelStats[2]
     for mass in masses:
         if mass[4] < 1000:
             cv2.rectangle(img_mask, (mass[0], mass[1]),
@@ -71,7 +74,7 @@ def imageProcessing(frame):
     # 線のヘリを探してくる
     border_right = []
     border_left = []
-    rows = [360, 400, 440, 480, 520, 560, 600, 640, 680, 720]
+    rows = [140, 180, 220, 260, 300, 700, 740, 780, 820, 860]
     for row in rows:
         line = img_mask[row, :]
         for i_right in range(len(line)):
@@ -98,19 +101,28 @@ def imageProcessing(frame):
     cv2.line(frame, (int(bl), 0), (int(bl+height*al), height), (0, 0, 255), 3)
     cv2.line(frame, (0, int(height/2)), (int(br+int(height/2)*ar), int(height/2)), (0, 255, 0), 2)
     cv2.line(frame, (width, int(height/2)), (int(bl+int(height/2)*al), int(height/2)), (0, 255, 0), 2)
-    font = cv2.FONT_HERSHEY_PLAIN
+    font = cv2.FONT_HERSHEY_SIMPLEX
     cv2.putText(frame, str(length_L), (int(width/4), int(height/2-10)), font, 2, (0, 255, 0), 3, cv2.LINE_AA)
     cv2.putText(frame, str(length_R), (int(3*width/4), int(height/2-10)), font, 2, (0, 255, 0), 3, cv2.LINE_AA)
     #csvに書きこみ
     result = [length_L, length_R]
     return frame, result
 
-
-def imshow(img):
-    cv2.imshow('frame', img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-
+def verification(frame):
+    height, width = frame.shape[:2]
+    # 色マスク
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV_FULL)
+    lowerGreen = np.array([200, 100, 100])
+    upperGreen = np.array([310, 255, 255])
+    img_mask = cv2.inRange(hsv, lowerGreen, upperGreen)
+    # ノイズキャンセリング
+    labelStats = cv2.connectedComponentsWithStats(img_mask)
+    masses = labelStats[2]
+    for mass in masses:
+        if mass[4] < 1000:
+            cv2.rectangle(img_mask, (mass[0], mass[1]),
+                          (mass[0] + mass[2], mass[1] + mass[3]), 0, -1)
+    return img_mask
 
 def main():
     lineTracker()
