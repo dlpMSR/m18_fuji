@@ -16,7 +16,7 @@ def lineTracker(video_path):
     out = cv2.VideoWriter('{}_output.avi'.format(filename),fourcc, 30.0, (1440,1080))
     f = open('{}_output.csv'.format(filename), 'w')
     writer = csv.writer(f, lineterminator='\n')
-    writer.writerow(['num', 'L_pix', 'R_pix', 'L_mm','R_mm'])
+    writer.writerow(['num', 'L_mm', 'R_mm', 'L_pix','R_pix'])
     result_list = []
     num_frame = 0
     while(cap.isOpened()):
@@ -31,8 +31,8 @@ def lineTracker(video_path):
                 result_list.append([num_frame]+frame_status.get_result())
             num_frame += 1
             pbar.update(1)
-            cv2.namedWindow('frame', cv2.WINDOW_KEEPRATIO | cv2.WINDOW_NORMAL)
-            cv2.imshow('frame', img_output)
+            # cv2.namedWindow('frame', cv2.WINDOW_KEEPRATIO | cv2.WINDOW_NORMAL)
+            # cv2.imshow('frame', img_output)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
         else:
