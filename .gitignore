@@ -1,5 +1,8 @@
 /frame
+/video
+/mask
 
 *.mp4
 *.avi
+*.MTS
 *.csv
