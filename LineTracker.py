@@ -46,8 +46,25 @@ def lineTracker(video_path):
     cv2.destroyAllWindows()
 
 
+def generateFrameImage(video_path):
+    cap = cv2.VideoCapture(video_path)
+    num = 0
+    while (cap.isOpened()):
+        ret, frame = cap.read()
+        if ret==True:
+            cv2.imshow('frame', frame)
+            filename_f = './frame/{}.jpg'.format(num)
+            cv2.imwrite(filename_f, frame)
+            num += 1
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+    cap.release()
+    cv2.destroyAllWindows()
+
+
 def main(arg):
     lineTracker(arg)
+    # generateFrameImage(arg)
 
 
 if __name__ == '__main__':
