@@ -44,7 +44,7 @@ class DetectionProcessing(object):
             mmppix = DetectionProcessing.MEASURE_WIDTH_mm/DetectionProcessing.MEASURE_WIDTH_pix
             lengthR_mm = int(mmppix*self.lengthR_pix)
             lengthL_mm = int(mmppix*self.lengthL_pix)
-            result_list = [lengthL_mm, lengthR_mm, self.lengthL_pix, self.lengthR_pix]
+            result_list = [lengthL_mm, lengthR_mm, self.lengthL_pix, self.lengthR_pix, self.a_left, self.a_right]
         else:
             result_list = []
         return result_list
